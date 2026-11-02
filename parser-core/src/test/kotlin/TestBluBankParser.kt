@@ -37,6 +37,18 @@ class BluBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Pol transfer from a mobile sender (#blu) — EXPENSE",
+                message = "بلو\nانتقال پل\nمحمد عزیز، 300,000,000 ریال از حساب استیم دی ال پرید.\n" +
+                    "موجودی: 314,143,824 ریال\n۶:۴۱\n۱۴۰۵.۰۸.۱۰",
+                sender = "0999 123 4567",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("300000000"),
+                    currency = "IRR",
+                    type = TransactionType.EXPENSE,
+                    balance = BigDecimal("314143824")
+                )
+            ),
+            ParserTestCase(
                 name = "Deposit / credit (INCOME)",
                 message = "بلو\nواریز پول\n<NAME> عزیز، 70,000,000 ریال به حساب شما نشست.\nموجودی: 71,087,723 ریال\n۱۱:۴۹\n۱۴۰۵.۰۳.۱۸",
                 sender = "98300087641",
@@ -53,6 +65,10 @@ class BluBankParserTest {
             "0999 998 7641" to true,
             "+989999987641" to true,
             "98300087641" to true,
+            // Rotating senders blu also pushes from: Iranian mobile + 9800 shortcode.
+            "0999 123 4567" to true,
+            "+989121234567" to true,
+            "98300012345" to true,
             "AD-ICICIB" to false,
             "HDFC" to false,
             "UNKNOWN" to false
