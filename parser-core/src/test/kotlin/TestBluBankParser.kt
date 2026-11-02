@@ -45,8 +45,32 @@ class BluBankParserTest {
                     amount = BigDecimal("300000000"),
                     currency = "IRR",
                     type = TransactionType.EXPENSE,
-                    balance = BigDecimal("314143824")
+                    balance = BigDecimal("314143824"),
+                    // No account digits in a blu SMS: the app must fall back to its
+                    // single service-level account, or blu never reaches Accounts.
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
                 )
+            ),
+            ParserTestCase(
+                name = "Card spend withdrawal from the personal account — EXPENSE",
+                message = "بلو\nبرداشت پول\nمحمد عزیز، 3,353,975 ریال از حساب شخصی شما پرید.\n" +
+                    "موجودی: 54,310,480 ریال\n۱۱:۱۹\n۱۴۰۵.۰۸.۱۱",
+                sender = "0999 998 7641",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3353975"),
+                    currency = "IRR",
+                    type = TransactionType.EXPENSE,
+                    balance = BigDecimal("54310480"),
+                    isMobileWallet = true,
+                    expectNullAccountLast4 = true
+                )
+            ),
+            ParserTestCase(
+                name = "OTP prompt for an online card payment must NOT parse",
+                message = "بلو\nبفرمایید رمز پویا\nخرید\nایرانسل\nمبلغ: 3,353,975 ریال\nرمز: 439429\n۱۱:۱۹",
+                sender = "0999 998 7641",
+                shouldParse = false
             ),
             ParserTestCase(
                 name = "Deposit / credit (INCOME)",

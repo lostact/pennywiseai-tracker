@@ -40,6 +40,11 @@ class BluBankParser : BankParser() {
     // "ریال" = Rial. Main sentence amount: a comma-grouped number before "ریال".
     private val amountPattern = Regex("""([0-9][0-9,]*)\s*ریال""")
 
+    // An OTP prompt ("رمز پویا" = dynamic password) quotes the amount, the payee and
+    // "رمز: <digits>", but moves no money — booking it double-counts the purchase it
+    // authorises, at the same amount. Its intent word ("خرید") is never a signal.
+    private val otpPattern = Regex("""رمز\s*پویا|رمز\s*یک\s*بار|رمز\s*[:：]|کد\s*ت(أ|ا)یید""")
+
     // "موجودی:" = balance, followed by a comma-grouped number before "ریال".
     private val balancePattern = Regex("""موجودی:\s*([0-9][0-9,]*)\s*ریال""")
 
@@ -62,13 +67,14 @@ class BluBankParser : BankParser() {
 
     override fun isTransactionMessage(message: String): Boolean {
         if (!message.contains(bankNameMarker)) return false
-        // A promo quoting "خرید" and an amount must never book a fake expense.
-        if (isNonTransactionMessage(message)) return false
-        // Must carry one of the action signals.
+        // A promo quoting "خرید" and an amount must never book a fake expense, and an
+        // OTP prompt must not be booked as the payment it authorises.
+        if (isNonTransactionMessage(message) || otpPattern.containsMatchIn(message)) return false
+        // Only wording that says the money actually moved. blu's intent words
+        // ("خرید", "انتقال پل") are always accompanied by "پرید" / "نشست" in the
+        // sentence that carries the balance, so they are not signals on their own.
         return message.contains("برداشت پول") || message.contains("پرید") ||
-                message.contains("واریز پول") || message.contains("نشست") ||
-                message.contains("انتقال") || message.contains("خرید") ||
-                message.contains("پرداخت") || message.contains("کسر")
+                message.contains("واریز پول") || message.contains("نشست")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -119,6 +125,11 @@ class BluBankParser : BankParser() {
         // blu samples carry no card/account number.
         return null
     }
+
+    // With no account number, the wallet path is the only one that creates an account
+    // row: the app derives a single "blu Bank" account from the running balance each
+    // SMS carries. Without this the transactions appear but the bank never does.
+    override fun isMobileWallet() = true
 
     override fun extractMerchant(message: String, sender: String): String? {
         // blu SMS carries no merchant/payee field.
