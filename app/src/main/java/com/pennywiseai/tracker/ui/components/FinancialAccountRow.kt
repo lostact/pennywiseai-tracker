@@ -36,7 +36,7 @@ fun FinancialAccountIdentity(
         if (accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
             Spacer(modifier = Modifier.width(Spacing.xs))
             Text(
-                text = "••$accountLast4",
+                text = AccountBalanceEntity.maskedSuffix(accountLast4),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

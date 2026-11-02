@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.navigation.AddTransaction
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -416,7 +417,7 @@ private fun SuggestionLine(tx: ParsedTransaction, onAdd: () -> Unit) {
         if (tx.type == TransactionType.INCOME) stringResource(R.string.unrecognized_suggestion_credit, amount)
         else stringResource(R.string.unrecognized_suggestion_debit, amount),
         tx.merchant,
-        tx.accountLast4?.let { "••$it" }
+        tx.accountLast4?.let { AccountBalanceEntity.maskedSuffix(it) }
     )
     Row(
         modifier = Modifier.fillMaxWidth(),

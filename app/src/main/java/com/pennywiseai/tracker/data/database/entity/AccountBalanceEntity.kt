@@ -113,16 +113,29 @@ data class AccountBalanceEntity(
         const val LOAN_TYPE = "LOAN"
 
         /**
+         * The masked suffix for an account: "••5375" for card digits. A bank that
+         * names its accounts instead of numbering them (blu's "Personal" and its
+         * business account name) carries that label here, and masking a word as
+         * "••Personal" would read as a bug — so a non-numeric key is shown as-is.
+         */
+        fun maskedSuffix(accountLast4: String): String =
+            if (accountLast4.length <= 4 && accountLast4.all { it.isDigit() }) {
+                "••$accountLast4"
+            } else {
+                accountLast4
+            }
+
+        /**
          * Human-readable label for an account. Mobile-money wallets have no
          * account number (and a blank last4 is meaningless), so show just the
-         * name; otherwise "Name ••1234". Use this everywhere an account is
-         * labelled so the [WALLET_ACCOUNT_MARKER] never leaks into the UI.
+         * name; otherwise "Name ••1234" / "Name Personal". Use this everywhere an
+         * account is labelled so the [WALLET_ACCOUNT_MARKER] never leaks into the UI.
          */
         fun accountLabel(name: String, accountLast4: String?): String =
             if (accountLast4.isNullOrBlank() || accountLast4 == WALLET_ACCOUNT_MARKER) {
                 name
             } else {
-                "$name ••$accountLast4"
+                "$name ${maskedSuffix(accountLast4)}"
             }
     }
 }

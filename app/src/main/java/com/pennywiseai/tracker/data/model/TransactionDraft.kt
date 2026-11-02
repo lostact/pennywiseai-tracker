@@ -95,7 +95,7 @@ data class TransactionDraft(
                 type = type,
                 bankName = account?.bankName,
                 accountLast4 = account?.accountLast4,
-                accountLabel = account?.let { "${it.bankName} ••${it.accountLast4}" }
+                accountLabel = account?.let { "${it.bankName} ${AccountBalanceEntity.maskedSuffix(it.accountLast4)}" }
                     ?: if (ambiguous) "No account (say which — last 4 digits)" else "Cash / manual",
                 sourceText = sourceText
             )

@@ -32,6 +32,14 @@ class BluBankParser : BankParser() {
 
     override fun getBankName() = "blu Bank"
 
+    companion object {
+        /** Key for blu's personal account ("حساب شخصی شما" — it carries no user-given name). */
+        const val PERSONAL_ACCOUNT = "Personal"
+
+        /** "شخصی" = personal. */
+        private const val PERSONAL_PHRASE = "شخصی"
+    }
+
     override fun getCurrency() = "IRR"
 
     // "بلو" = blu (bank-name line; strongest in-body signal).
@@ -121,15 +129,41 @@ class BluBankParser : BankParser() {
         return null
     }
 
+    /**
+     * blu keeps a personal and a business account behind ONE sender and one card-less
+     * SMS format. The only thing that tells them apart is the account it names in the
+     * sentence — the business one under whatever name the user gave it:
+     *
+     *   "به حساب استیم دی ال نشست."    → the account called "استیم دی ال"
+     *   "به حساب شخصی شما نشست."        → the personal account ("your personal account")
+     *   "از حساب شخصی شما پرید."
+     *
+     * With no card digits to key on, that phrase becomes the account key, so the two
+     * accounts stay separate. A sentence we can't read returns null, which keeps the
+     * wallet fallback in [isMobileWallet] for older shapes.
+     */
     override fun extractAccountLast4(message: String): String? {
-        // blu samples carry no card/account number.
-        return null
+        val phrase = accountPhrasePattern.find(message)?.groupValues?.get(1) ?: return null
+        return accountKey(phrase)
     }
 
-    // With no account number, the wallet path is the only one that creates an account
-    // row: the app derives a single "blu Bank" account from the running balance each
-    // SMS carries. Without this the transactions appear but the bank never does.
+    // Fallback only: when the sentence names no account we can read, the app derives a
+    // single "blu Bank" account from the running balance instead of dropping it.
     override fun isMobileWallet() = true
+
+    /** "حساب <label> نشست|پرید|واریز|برداشت" — the account a line moved in. */
+    private val accountPhrasePattern =
+        Regex("""\u062D\u0633\u0627\u0628\s+(\S[^\n]{0,40}?)\s+(?:نشست|پرید|واریز|برداشت)""")
+
+    /** The personal account has no user-given name; everything else keeps its own wording. */
+    private fun accountKey(phrase: String): String {
+        val normalized = phrase.replace(Regex("""\s+"""), " ").trim()
+        return if (normalized.contains(PERSONAL_PHRASE) || normalized == "شما") {
+            PERSONAL_ACCOUNT
+        } else {
+            normalized.take(24)
+        }
+    }
 
     override fun extractMerchant(message: String, sender: String): String? {
         // blu SMS carries no merchant/payee field.

@@ -175,7 +175,7 @@ private fun AccountCarouselCard(
             // Mobile-money wallets have no account number — show just the service name.
             if (account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
                 Text(
-                    text = "••${account.accountLast4}",
+                    text = AccountBalanceEntity.maskedSuffix(account.accountLast4),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     maxLines = 1

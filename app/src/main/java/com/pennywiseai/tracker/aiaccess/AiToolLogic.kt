@@ -172,7 +172,11 @@ object AiToolLogic {
 
     /** "HDFC ••4821"; only the last four digits ever leave the phone. */
     fun maskedAccount(bank: String?, number: String?): String? {
-        val last4 = number?.filter { it.isLetterOrDigit() }?.takeLast(4)?.takeIf { it.isNotEmpty() }
+        // A bank that names accounts instead of numbering them ("Personal", blu's
+        // business account name) has no digits to mask — sending a truncated word
+        // would be both meaningless and a name leak, so only the bank goes.
+        val digits = number?.filter { it.isDigit() }
+        val last4 = digits?.takeLast(4)?.takeIf { it.isNotEmpty() }
         return when {
             bank.isNullOrBlank() && last4 == null -> null
             last4 == null -> bank

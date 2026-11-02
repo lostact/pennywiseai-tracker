@@ -243,7 +243,7 @@ private fun CompactAccountItem(
             // Mobile-money wallets have no account number — show just the service name.
             if (accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
                 Text(
-                    text = "••$accountLast4",
+                    text = AccountBalanceEntity.maskedSuffix(accountLast4),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

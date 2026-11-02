@@ -397,7 +397,7 @@ fun BalanceCard(
                                         text = if (account.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
                                             account.bankName
                                         } else {
-                                            "${account.bankName} •• ${account.accountLast4}"
+                                            "${account.bankName} ${AccountBalanceEntity.maskedSuffix(account.accountLast4)}"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface
