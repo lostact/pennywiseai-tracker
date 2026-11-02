@@ -312,7 +312,7 @@ fun LoanDetailScreen(
                         }
                     },
                     label = { Text(stringResource(R.string.loan_detail_expected_return_label)) },
-                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
+                    prefix = { Text(CurrencyFormatter.inputSymbol(loan.currency)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = RoundedCornerShape(16.dp),
@@ -549,7 +549,7 @@ private fun RecordPaymentBottomSheet(
                         }
                     },
                     label = { Text(stringResource(R.string.loan_detail_amount_label)) },
-                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
+                    prefix = { Text(CurrencyFormatter.inputSymbol(currency)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

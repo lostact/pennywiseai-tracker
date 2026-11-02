@@ -462,7 +462,7 @@ private fun MoneySheet(
                     value = manual,
                     onValueChange = { if (it.matches(amountInput)) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
-                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
+                    prefix = { Text(CurrencyFormatter.inputSymbol(goalCurrency)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),

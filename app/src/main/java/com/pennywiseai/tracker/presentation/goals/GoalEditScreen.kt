@@ -174,7 +174,7 @@ fun GoalEditScreen(
                     value = form.alreadySaved,
                     onValueChange = { v -> if (v.matches(amountInput)) viewModel.update { it.copy(alreadySaved = v) } },
                     label = { Text(stringResource(R.string.goal_edit_already_saved)) },
-                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(form.currency)) },
+                    prefix = { Text(CurrencyFormatter.inputSymbol(form.currency)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = GoalFieldError.ALREADY_SAVED_INVALID in errors,

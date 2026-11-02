@@ -50,6 +50,20 @@
     <string name="settings_date_format_title">Date Format</string>
     <string name="settings_date_format_subtitle">How dates are shown</string>
 
+    <!-- Iranian amounts (Rial / Toman, Persian / Latin digits) -->
+    <string name="settings_iranian_format_title">Iranian Amounts</string>
+    <string name="settings_iranian_format_subtitle">Rial amounts from bank SMS, and which digits to use</string>
+    <string name="settings_iranian_unit_rial">Rial</string>
+    <string name="settings_iranian_unit_toman">Toman</string>
+    <string name="settings_iranian_unit_rial_example">300,000,000 (as the bank SMS sends it)</string>
+    <string name="settings_iranian_unit_toman_example">30,000,000 — display only (Rial ÷ 10), shown with “T”; typing still uses Rial</string>
+    <string name="settings_iranian_digits_persian">Persian digits</string>
+    <string name="settings_iranian_digits_latin">English digits</string>
+    <string name="settings_iranian_digits_persian_example">۳۱۴,۱۴۳,۸۲۴</string>
+    <string name="settings_iranian_digits_latin_example">314,143,824 (no Persian letters)</string>
+    <string name="settings_iranian_unit_label_rial">Rial</string>
+    <string name="settings_iranian_unit_label_toman">Toman (T)</string>
+
     <!-- Budget -->
     <string name="settings_budget_section">Budget</string>
     <string name="settings_budget_cycle_title">Budget Cycle Start Day</string>

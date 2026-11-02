@@ -92,6 +92,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.data.preferences.DateFormatStyle
+import com.pennywiseai.tracker.data.preferences.IranianAmountUnit
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
@@ -134,6 +135,8 @@ fun SettingsScreen(
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
     val numberFormatStyle by settingsViewModel.numberFormatStyle.collectAsStateWithLifecycle(initialValue = NumberFormatStyle.AUTO)
     val dateFormatStyle by settingsViewModel.dateFormatStyle.collectAsStateWithLifecycle(initialValue = DateFormatStyle.AUTO)
+    val iranianAmountUnit by settingsViewModel.iranianAmountUnit.collectAsStateWithLifecycle(initialValue = IranianAmountUnit.RIAL)
+    val iranianPersianDigits by settingsViewModel.iranianPersianDigits.collectAsStateWithLifecycle(initialValue = true)
     val budgetCycleStartDay by settingsViewModel.budgetCycleStartDay.collectAsStateWithLifecycle(initialValue = 1)
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
@@ -176,6 +179,7 @@ fun SettingsScreen(
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showNumberFormatDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
+    var showIranianFormatDialog by remember { mutableStateOf(false) }
     var showTrackedAppsDialog by remember { mutableStateOf(false) }
     val trackedAppsViewModel: TrackedAppsViewModel = hiltViewModel()
     val trackedApps by trackedAppsViewModel.tracked.collectAsStateWithLifecycle()
@@ -486,8 +490,19 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_date_format_title),
                     subtitle = stringResource(R.string.settings_date_format_subtitle),
                     onClick = { showDateFormatDialog = true },
-                    position = ListItemPosition.Bottom,
+                    position = ListItemPosition.Middle,
                     trailingText = dateFormatStyleLabel(dateFormatStyle)
+                )
+
+                SettingsNavItem(
+                    icon = Icons.Default.Payments,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = stringResource(R.string.settings_iranian_format_title),
+                    subtitle = stringResource(R.string.settings_iranian_format_subtitle),
+                    onClick = { showIranianFormatDialog = true },
+                    position = ListItemPosition.Bottom,
+                    trailingText = iranianFormatLabel(iranianAmountUnit, iranianPersianDigits)
                 )
             }
 
@@ -1109,6 +1124,49 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showNumberFormatDialog = false }) {
+                    Text(stringResource(R.string.settings_action_cancel))
+                }
+            }
+        )
+    }
+
+    // Iranian amount dialog: Rial vs Toman, and Persian vs English digits.
+    // Both are display-only — SMS amounts stay Rial in the database.
+    if (showIranianFormatDialog) {
+        AlertDialog(
+            onDismissRequest = { showIranianFormatDialog = false },
+            title = { Text(stringResource(R.string.settings_iranian_format_title)) },
+            text = {
+                Column {
+                    IranianOptionRow(
+                        selected = iranianAmountUnit == IranianAmountUnit.RIAL,
+                        label = stringResource(R.string.settings_iranian_unit_rial),
+                        example = stringResource(R.string.settings_iranian_unit_rial_example),
+                        onSelect = { settingsViewModel.updateIranianAmountUnit(IranianAmountUnit.RIAL) }
+                    )
+                    IranianOptionRow(
+                        selected = iranianAmountUnit == IranianAmountUnit.TOMAN,
+                        label = stringResource(R.string.settings_iranian_unit_toman),
+                        example = stringResource(R.string.settings_iranian_unit_toman_example),
+                        onSelect = { settingsViewModel.updateIranianAmountUnit(IranianAmountUnit.TOMAN) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
+                    IranianOptionRow(
+                        selected = iranianPersianDigits,
+                        label = stringResource(R.string.settings_iranian_digits_persian),
+                        example = stringResource(R.string.settings_iranian_digits_persian_example),
+                        onSelect = { settingsViewModel.updateIranianPersianDigits(true) }
+                    )
+                    IranianOptionRow(
+                        selected = !iranianPersianDigits,
+                        label = stringResource(R.string.settings_iranian_digits_latin),
+                        example = stringResource(R.string.settings_iranian_digits_latin_example),
+                        onSelect = { settingsViewModel.updateIranianPersianDigits(false) }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showIranianFormatDialog = false }) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1897,6 +1955,50 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringR
         NumberFormatStyle.INTERNATIONAL -> R.string.settings_number_format_international_example
     }
 )
+
+/** Trailing summary of the Iranian display choices, e.g. "Toman (T) · English digits". */
+@Composable
+private fun iranianFormatLabel(unit: IranianAmountUnit, persianDigits: Boolean): String {
+    val unitLabel = stringResource(
+        when (unit) {
+            IranianAmountUnit.RIAL -> R.string.settings_iranian_unit_label_rial
+            IranianAmountUnit.TOMAN -> R.string.settings_iranian_unit_label_toman
+        }
+    )
+    val digitsLabel = stringResource(
+        if (persianDigits) R.string.settings_iranian_digits_persian
+        else R.string.settings_iranian_digits_latin
+    )
+    return "$unitLabel · $digitsLabel"
+}
+
+/** One selectable line in the Iranian amount dialog. */
+@Composable
+private fun IranianOptionRow(
+    selected: Boolean,
+    label: String,
+    example: String,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onSelect)
+            .padding(vertical = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Spacer(modifier = Modifier.width(Spacing.sm))
+        Column {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = example,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
 /**
  * English ordinal suffix for the budget cycle start day — "1st", "2nd", "3rd",

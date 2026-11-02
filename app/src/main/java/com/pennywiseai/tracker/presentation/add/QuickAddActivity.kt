@@ -234,7 +234,7 @@ class QuickAddActivity : FragmentActivity() {
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { typed -> normalizeAmount(typed, decimalComma)?.let { amountText = it } },
-                prefix = { Text(CurrencyFormatter.getCurrencySymbol(setup.currency) + " ") },
+                prefix = { Text(CurrencyFormatter.inputSymbol(setup.currency) + " ") },
                 textStyle = MaterialTheme.typography.headlineSmall,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),

@@ -290,7 +290,7 @@ private fun SplitRow(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 prefix = {
                     Text(
-                        text = CurrencyFormatter.getCurrencySymbol(currency),
+                        text = CurrencyFormatter.inputSymbol(currency),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },

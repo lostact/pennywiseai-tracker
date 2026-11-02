@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.data.preferences.DateFormatStyle
+import com.pennywiseai.tracker.data.preferences.IranianAmountUnit
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -198,6 +199,12 @@ class SettingsViewModel @Inject constructor(
     val numberFormatStyle = userPreferencesRepository.numberFormatStyle
 
     val dateFormatStyle = userPreferencesRepository.dateFormatStyle
+
+    /** Iranian amounts: Rial (as the SMS quotes) or Toman (Rial / 10). */
+    val iranianAmountUnit = userPreferencesRepository.iranianAmountUnit
+
+    /** Persian digits + "﷼" for IRR, or Latin digits + "T"/"IRR". */
+    val iranianPersianDigits = userPreferencesRepository.iranianPersianDigits
 
     // Budget cycle start day (1..31). Drives Home/Budgets/Analytics so a user
     // whose salary doesn't land on the 1st can define their own pay cycle.
@@ -778,6 +785,20 @@ class SettingsViewModel @Inject constructor(
     fun updateNumberFormatStyle(style: NumberFormatStyle) {
         viewModelScope.launch {
             userPreferencesRepository.updateNumberFormatStyle(style)
+        }
+    }
+
+    fun updateIranianAmountUnit(unit: IranianAmountUnit) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateIranianAmountUnit(unit)
+            CurrencyFormatter.iranianAmountUnit = unit
+        }
+    }
+
+    fun updateIranianPersianDigits(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateIranianPersianDigits(enabled)
+            CurrencyFormatter.iranianPersianDigits = enabled
         }
     }
 

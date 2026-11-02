@@ -164,6 +164,11 @@ open class UserPreferencesRepository @Inject constructor(
         val NUMBER_FORMAT_STYLE = stringPreferencesKey("number_format_style")
         val DATE_FORMAT_STYLE = stringPreferencesKey("date_format_style")
 
+        // Iranian amounts: display unit (Rial / Toman) and digit script. Both are
+        // display-only — SMS amounts stay Rial in the database.
+        val IRANIAN_AMOUNT_UNIT = stringPreferencesKey("iranian_amount_unit")
+        val IRANIAN_PERSIAN_DIGITS = booleanPreferencesKey("iranian_persian_digits")
+
         // Analytics Chart Type
         val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
         val ANALYTICS_GROUP_BY = stringPreferencesKey("analytics_group_by")
@@ -300,6 +305,18 @@ open class UserPreferencesRepository @Inject constructor(
                 ?.let { name -> DateFormatStyle.entries.firstOrNull { it.name == name } }
                 ?: DateFormatStyle.AUTO
         }
+
+    /** Rial (as the SMS quotes it) or Toman (Rial / 10) for IRR display. */
+    val iranianAmountUnit: Flow<IranianAmountUnit> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.IRANIAN_AMOUNT_UNIT]
+                ?.let { name -> IranianAmountUnit.entries.firstOrNull { it.name == name } }
+                ?: IranianAmountUnit.RIAL
+        }
+
+    /** Persian digits + "﷼" for IRR (default), or Latin digits + "T"/"IRR". */
+    val iranianPersianDigits: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.IRANIAN_PERSIAN_DIGITS] ?: true }
 
     suspend fun updateDarkThemeEnabled(enabled: Boolean?) {
         context.dataStore.edit { preferences ->
@@ -891,6 +908,18 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun updateNumberFormatStyle(style: NumberFormatStyle) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.NUMBER_FORMAT_STYLE] = style.name
+        }
+    }
+
+    suspend fun updateIranianAmountUnit(unit: IranianAmountUnit) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IRANIAN_AMOUNT_UNIT] = unit.name
+        }
+    }
+
+    suspend fun updateIranianPersianDigits(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IRANIAN_PERSIAN_DIGITS] = enabled
         }
     }
 

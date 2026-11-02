@@ -797,7 +797,7 @@ private fun CategoryBudgetRow(
                     onAmountChange(parsed)
                 }
             },
-            prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
+            prefix = { Text(CurrencyFormatter.inputSymbol(currency)) },
             singleLine = true,
             modifier = Modifier.width(140.dp),
             textStyle = MaterialTheme.typography.bodyMedium,

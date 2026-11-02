@@ -120,6 +120,18 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 CurrencyFormatter.numberFormatStyle = style
             }
         }
+        // Rial/Toman and Persian/Latin digits follow the same pattern: read from
+        // DataStore here, pushed into CurrencyFormatter for every call site.
+        applicationScope.launch {
+            userPreferencesRepository.iranianAmountUnit.collectLatest { unit ->
+                CurrencyFormatter.iranianAmountUnit = unit
+            }
+        }
+        applicationScope.launch {
+            userPreferencesRepository.iranianPersianDigits.collectLatest { persian ->
+                CurrencyFormatter.iranianPersianDigits = persian
+            }
+        }
         applicationScope.launch {
             userPreferencesRepository.dateFormatStyle.collectLatest { style ->
                 AppDates.dateFormatStyle = style

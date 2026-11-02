@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.utils
 
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.tracker.data.preferences.IranianAmountUnit
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import java.math.BigDecimal
 import java.text.NumberFormat
@@ -29,6 +30,21 @@ object CurrencyFormatter {
     var numberFormatStyle: NumberFormatStyle = NumberFormatStyle.AUTO
 
     /**
+     * Iranian display unit. Stored amounts stay Rial (what the banks text);
+     * [IranianAmountUnit.TOMAN] only divides by ten when rendering.
+     */
+    @Volatile
+    var iranianAmountUnit: IranianAmountUnit = IranianAmountUnit.RIAL
+
+    /**
+     * Persian digits (۳۱۴) and the "﷼" glyph for IRR — the historical behaviour.
+     * Off, an IRR figure renders with Latin digits and a Latin symbol instead,
+     * so it can be read in English and pasted into other apps.
+     */
+    @Volatile
+    var iranianPersianDigits: Boolean = true
+
+    /**
      * The locale that drives digit grouping for [currencyCode], honouring the
      * user's [numberFormatStyle]. AUTO keeps each currency's native grouping
      * (Indian for INR/NPR/PKR, international elsewhere).
@@ -37,11 +53,43 @@ object CurrencyFormatter {
         NumberFormatStyle.INDIAN -> INDIAN_LOCALE
         NumberFormatStyle.INTERNATIONAL -> INTERNATIONAL_LOCALE
         NumberFormatStyle.AUTO ->
-            if (currencyCode != null && currencyCode in INDIAN_NOTATION_CURRENCIES) {
-                INDIAN_LOCALE
-            } else {
-                CURRENCY_LOCALES[currencyCode] ?: INTERNATIONAL_LOCALE
+            when {
+                // IRR's locale is fa-IR, which renders Persian digits. When the user
+                // asked for Latin digits, format it with international grouping.
+                currencyCode == IRANIAN_RIAL && !iranianPersianDigits -> INTERNATIONAL_LOCALE
+                currencyCode != null && currencyCode in INDIAN_NOTATION_CURRENCIES -> INDIAN_LOCALE
+                else -> CURRENCY_LOCALES[currencyCode] ?: INTERNATIONAL_LOCALE
             }
+    }
+
+    private const val IRANIAN_RIAL = "IRR"
+
+    /**
+     * The figure to print for [currencyCode]. Rial amounts are stored as the bank
+     * sent them; showing Toman divides by ten at render time only, so no stored
+     * amount or balance is ever rewritten by this preference.
+     */
+    private fun displayAmount(amount: BigDecimal, currencyCode: String?): BigDecimal =
+        if (currencyCode == IRANIAN_RIAL && iranianAmountUnit == IranianAmountUnit.TOMAN) {
+            amount.movePointLeft(1)
+        } else {
+            amount
+        }
+
+    /** Decimals to keep: Toman is conventionally shown whole. */
+    private fun maxDecimals(currencyCode: String?): Int = when {
+        currencyCode == IRANIAN_RIAL && iranianAmountUnit == IranianAmountUnit.TOMAN -> 0
+        currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES -> 3
+        else -> 2
+    }
+
+    /** Rial glyph, Latin "T" for Toman, or a plain code when Persian letters are off. */
+    private fun symbolFor(currencyCode: String): String = when {
+        currencyCode == IRANIAN_RIAL && iranianAmountUnit == IranianAmountUnit.TOMAN ->
+            IranianAmountUnit.TOMAN_SYMBOL
+        currencyCode == IRANIAN_RIAL && !iranianPersianDigits ->
+            IranianAmountUnit.RIAL_LATIN_SYMBOL
+        else -> CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
     }
 
     /** Whether to abbreviate large values with Indian L/Cr (vs western K/M). */
@@ -179,8 +227,16 @@ object CurrencyFormatter {
         if (Locale.getDefault().language in RTL_LANGUAGES) "\u2066$s\u2069" else s
 
     private fun formatCurrencyRaw(amount: BigDecimal, currencyCode: String): String {
+        val shown = displayAmount(amount, currencyCode)
+        // Iranian convention puts the unit after the figure — "300,000,000 ریال",
+        // and the same for "T" — while en-US puts an ISO code in front. The JVM's
+        // fa-IR and Android's also disagree on the side, so render IRR explicitly
+        // and the order stays the same on every platform and unit.
+        if (currencyCode == IRANIAN_RIAL) {
+            return "${formatAmount(shown, currencyCode)} ${symbolFor(currencyCode)}"
+        }
         if (currencyCode in EXPLICIT_SYMBOL_CURRENCIES) {
-            return "${CURRENCY_SYMBOLS[currencyCode]}${formatAmount(amount, currencyCode)}"
+            return "${symbolFor(currencyCode)}${formatAmount(shown, currencyCode)}"
         }
         return try {
             val locale = groupingLocale(currencyCode)
@@ -191,30 +247,32 @@ object CurrencyFormatter {
                 formatter.currency = Currency.getInstance(currencyCode)
             } catch (e: Exception) {
                 // If currency not supported, use symbol mapping
-                val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-                return "$symbol${formatAmount(amount, currencyCode)}"
+                return "${symbolFor(currencyCode)}${formatAmount(shown, currencyCode)}"
             }
 
             // Prefer our own symbol over the platform's so a formatted amount
             // matches the picker / getCurrencySymbol (e.g. LKR renders as "Rs",
             // SGD as "S$" instead of a bare "$"), while keeping the platform's
             // locale-driven grouping and decimals.
+            // IRR always takes our symbol (glyph / "T" / "IRR"); others keep the
+            // platform's symbol unless we ship an explicit one for them.
+            val customSymbol =
+                if (currencyCode == IRANIAN_RIAL) symbolFor(currencyCode) else CURRENCY_SYMBOLS[currencyCode]
             (formatter as? java.text.DecimalFormat)?.let { df ->
-                CURRENCY_SYMBOLS[currencyCode]?.let { customSymbol ->
+                customSymbol?.let {
                     val dfs = df.decimalFormatSymbols
-                    dfs.currencySymbol = customSymbol
+                    dfs.currencySymbol = it
                     df.decimalFormatSymbols = dfs
                 }
             }
 
             // Show decimals only if they exist
             formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
-            formatter.format(amount)
+            formatter.maximumFractionDigits = maxDecimals(currencyCode)
+            formatter.format(shown)
         } catch (e: Exception) {
             // Fallback to symbol + amount
-            val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-            "$symbol${formatAmount(amount, currencyCode)}"
+            "${symbolFor(currencyCode)}${formatAmount(shown, currencyCode)}"
         }
     }
 
@@ -289,15 +347,26 @@ object CurrencyFormatter {
     private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {
         val formatter = NumberFormat.getNumberInstance(groupingLocale(currencyCode))
         formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        formatter.maximumFractionDigits = maxDecimals(currencyCode)
         return formatter.format(amount)
     }
 
     /**
-     * Gets the currency symbol for a given currency code
+     * Gets the currency symbol for a given currency code — Rial's glyph or "T",
+     * honouring the Iranian display preferences.
      */
-    fun getCurrencySymbol(currencyCode: String): String {
-        return CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
+    fun getCurrencySymbol(currencyCode: String): String = symbolFor(currencyCode)
+
+    /**
+     * Symbol for an **entry** field. Toman is a display choice only (stored amounts
+     * stay Rial), so an input must not be labelled "T" — typing 30,000,000 into a
+     * T-labelled field would otherwise be saved as 30,000,000 Rial, a tenth of what
+     * the user meant. Entry therefore always uses the stored unit's symbol.
+     */
+    fun inputSymbol(currencyCode: String): String = when {
+        currencyCode == IRANIAN_RIAL && !iranianPersianDigits ->
+            IranianAmountUnit.RIAL_LATIN_SYMBOL
+        else -> CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
     }
 
     /**
@@ -312,7 +381,8 @@ object CurrencyFormatter {
      */
     fun formatAbbreviated(value: Double, currencyCode: String): String {
         val symbol = getCurrencySymbol(currencyCode)
-        val absValue = kotlin.math.abs(value)
+        // Charts must abbreviate the same unit the rest of the UI prints.
+        val absValue = kotlin.math.abs(displayAmount(value.toBigDecimal(), currencyCode).toDouble())
         val useIndianNotation = useIndianAbbreviation(currencyCode)
         return when {
             useIndianNotation && absValue >= 1_00_00_000 ->
